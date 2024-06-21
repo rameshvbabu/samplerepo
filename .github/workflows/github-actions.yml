@@ -33,12 +33,15 @@ jobs:
         uses: actions/setup-python@v4 
         with: 
           python-version: ${{matrix.python-version}}
+      - name: Install dependencies
+        run: | 
+          python -m pip install --upgrade pip
       - name: Pytest 
         run: |
           pip install pytest
-          pip install airflow
-          airflow webserver &
-          airflow db init
-          airflow scheduler &
+          # pip install airflow
+          # airflow webserver &
+          # airflow db init
+          # airflow scheduler &
           pytest tests/
                 
