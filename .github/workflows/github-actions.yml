@@ -10,6 +10,8 @@ jobs:
             matrix:
                 python-version: [3.13.0-beta.1]
         runs-on: ubuntu-latest
+        runs:
+          using: 'node20'
         steps:
             - name: Check out source repository 
               uses: actions/checkout@v4 
