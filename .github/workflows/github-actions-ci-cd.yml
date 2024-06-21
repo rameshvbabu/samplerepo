@@ -2,11 +2,9 @@ name: GitHub Actions CI/CD
 
 on:
   pull_request:
-    branches:
-      - "predev"
+    branches: [ "predev" ]
   push:
-    branches:
-      - "cicd-test"
+    branches: [ "cicd-test" ]
 
 jobs:
   flake8:
