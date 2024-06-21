@@ -2,7 +2,7 @@ name: GitHub Actions CI/CD
 
 on:
     push:
-        branches: ["cicd-main"]
+        branches: ["main"]
 
 jobs:
     flake8:
