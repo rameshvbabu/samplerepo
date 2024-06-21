@@ -36,6 +36,7 @@ jobs:
       - name: Pytest 
         run: |
           pip install pytest
+          pip install airflow
           airflow webserver &
           airflow db init
           airflow scheduler &
