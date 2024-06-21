@@ -8,7 +8,7 @@ jobs:
     flake8:
         strategy:
             matrix:
-                python-version: [3.12.3]
+                python-version: [3.13.0-alpha.3]
         runs-on: ubuntu-latest
         steps:
             - name: Check out source repository 
