@@ -8,10 +8,8 @@ jobs:
     flake8:
         strategy:
             matrix:
-                python-version: [3.13.0-beta.1]
+                python-version: [3.12.3]
         runs-on: ubuntu-latest
-        runs:
-          using: 'node20'
         steps:
             - name: Check out source repository 
               uses: actions/checkout@v4 
