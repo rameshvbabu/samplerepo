@@ -1,0 +1,23 @@
+name: GitHub Actions CI/CD 
+
+on:
+    push:
+        branches: ["cicd-main"]
+
+jobs:
+    flake8:
+        strategy:
+            matrix:
+                python-version: [3.11.15]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out source repository 
+              uses: actions/checkout@v4 
+            - name: Setup Python 
+              uses: actions/setup-python@v4
+              with:
+                python-version: ${{matrix.python-version}}
+            - name: flake8 Lint 
+              uses: py-actions/flake8@v1
+              with:
+                max-line-length: 120 
