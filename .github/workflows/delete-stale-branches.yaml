@@ -1,0 +1,52 @@
+name: Delete Stale Branches
+
+on:
+  schedule:
+    # - cron: '16 11 * * *' # Every Sunday at 2:00 AM  UTC
+    - cron: '*/1 * * * *'
+  #workflow_dispatch:
+
+jobs:
+  delete-stale-branches:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt update
+          sudo apt install gh -y
+
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.CDW_GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Delete stale branches (excluding exempted)
+        env:
+          GH_TOKEN: ${{ secrets.CDW_GITHUB_TOKEN }}
+          EXEMPT_BRANCHES: 'main dev qa prod testbranch03 qa_test01'
+          STALE_DAYS: 10
+        run: |
+          echo "Fetching remote branches..."
+          branches=$(gh api repos/${{ github.repository }}/branches --paginate -q '.[].name')
+
+          for branch in $branches; do
+            if [[ " ${EXEMPT_BRANCHES[@]} " =~ " $branch " ]]; then
+              echo "Skipping exempt branch: $branch"
+              continue
+            fi
+
+            # Get the last commit date
+            commit_date=$(gh api repos/${{ github.repository }}/commits/$branch -q '.commit.committer.date')
+            commit_timestamp=$(date -d "$commit_date" +%s)
+            now=$(date +%s)
+            age_days=$(( (now - commit_timestamp) / 86400 ))
+
+            if (( age_days > STALE_DAYS )); then
+              echo "Deleting stale branch: $branch (last commit $age_days days ago)"
+              gh api -X DELETE repos/${{ github.repository }}/git/refs/heads/$branch
+            else
+              echo "Branch $branch is not stale (last commit $age_days days ago)"
+            fi
+          done
