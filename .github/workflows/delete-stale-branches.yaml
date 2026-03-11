@@ -1,52 +1,66 @@
-name: Delete Stale Branches
+name: Cleanup Old Branches
 
 on:
   schedule:
-    # - cron: '16 11 * * *' # Every Sunday at 2:00 AM  UTC
-    - cron: '*/1 * * * *'
-  #workflow_dispatch:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (true = do not delete)"
+        required: true
+        default: "true"
+
+permissions:
+  contents: write
 
 jobs:
-  delete-stale-branches:
+  cleanup:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install GitHub CLI
-        run: |
-          sudo apt update
-          sudo apt install gh -y
-
-      - name: Authenticate GitHub CLI
-        run: echo "${{ secrets.CDW_GITHUB_TOKEN }}" | gh auth login --with-token
-
-      - name: Delete stale branches (excluding exempted)
+      - name: Cleanup branches
         env:
-          GH_TOKEN: ${{ secrets.CDW_GITHUB_TOKEN }}
-          EXEMPT_BRANCHES: 'main dev qa prod testbranch03 qa_test01'
-          STALE_DAYS: 10
+          EXCEPTIONS: "main develop dev qa prod staging production"
+          DAYS: 50
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
         run: |
-          echo "Fetching remote branches..."
-          branches=$(gh api repos/${{ github.repository }}/branches --paginate -q '.[].name')
 
-          for branch in $branches; do
-            if [[ " ${EXEMPT_BRANCHES[@]} " =~ " $branch " ]]; then
-              echo "Skipping exempt branch: $branch"
+          echo "Dry run mode: $DRY_RUN"
+
+          git fetch --prune
+
+          cutoff=$(date -d "$DAYS days ago" +%s)
+
+          for branch in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/); do
+
+            branch_name=${branch#origin/}
+
+            # skip HEAD
+            if [[ "$branch_name" == "HEAD" ]]; then
               continue
             fi
 
-            # Get the last commit date
-            commit_date=$(gh api repos/${{ github.repository }}/commits/$branch -q '.commit.committer.date')
-            commit_timestamp=$(date -d "$commit_date" +%s)
-            now=$(date +%s)
-            age_days=$(( (now - commit_timestamp) / 86400 ))
+            # skip exceptions
+            if [[ " $EXCEPTIONS " =~ " $branch_name " ]]; then
+              echo "Skipping protected branch: $branch_name"
+              continue
+            fi
 
-            if (( age_days > STALE_DAYS )); then
-              echo "Deleting stale branch: $branch (last commit $age_days days ago)"
-              gh api -X DELETE repos/${{ github.repository }}/git/refs/heads/$branch
-            else
-              echo "Branch $branch is not stale (last commit $age_days days ago)"
+            last_commit=$(git log -1 --format=%ct origin/$branch_name)
+
+            if [[ $last_commit -lt $cutoff ]]; then
+
+              if [[ "$DRY_RUN" == "true" ]]; then
+                echo "[DRY RUN] Would delete branch: $branch_name"
+              else
+                echo "Deleting branch: $branch_name"
+                git push origin --delete $branch_name
+              fi
+
             fi
           done
