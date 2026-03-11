@@ -22,7 +22,7 @@ jobs:
 
       - name: Cleanup branches
         env:
-          EXCEPTIONS: "prod qa dev main qa_02"
+          EXCEPTIONS: "qa dev main qa_02"
           DAYS: 30
           DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
         run: |
